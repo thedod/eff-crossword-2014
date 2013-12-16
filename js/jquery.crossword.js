@@ -96,8 +96,6 @@
 							return false;
 						} else {
 							
-							console.log('input keyup: '+solvedToggle);
-							
 							puzInit.checkAnswer(e);
 
 						}
@@ -318,7 +316,6 @@
 						.get()
 						.join('');
 					
-					//console.log(currVal + " " + valToCheck);
 					if(valToCheck === currVal){	
 						$('.active')
 							.addClass('done')
@@ -332,10 +329,6 @@
 					}
 					
 					currOri === 'across' ? nav.nextPrevNav(e, 39) : nav.nextPrevNav(e, 40);
-					
-					//z++;
-					//console.log(z);
-					//console.log('checkAnswer() solvedToggle: '+solvedToggle);
 
 				}				
 
@@ -361,8 +354,6 @@
 					$('.current').removeClass('current');
 					
 					selector = '.position-' + activePosition + ' input';
-					
-					//console.log('nextPrevNav activePosition & struck: '+ activePosition + ' '+struck);
 						
 					// move input focus/select to 'next' input
 					switch(struck) {
@@ -419,8 +410,6 @@
 					util.highlightEntry();
 					util.highlightClue();
 
-					console.log($('.active'))
-										
 					$('.active').eq(0).focus();
 					$('.active').eq(0).select();
 					$('.active').eq(0).addClass('current');
@@ -429,7 +418,6 @@
 					currOri = $('.clues-active').parent('ul').prop('id');
 										
 					activeClueIndex = $(clueLiEls).index(e.target);
-					//console.log('updateByNav() activeClueIndex: '+activeClueIndex);
 					
 				},
 			
@@ -466,9 +454,6 @@
 						
 						util.highlightEntry();
 						util.highlightClue();
-						
-						//$actives.eq(0).addClass('current');	
-						//console.log('nav.updateByEntry() reports activePosition as: '+activePosition);	
 				}
 				
 			}; // end nav object
@@ -563,8 +548,6 @@
 						} else {
 							activePosition = classes[0].split('-')[1];						
 						}
-						
-						console.log('getActivePositionFromClassGroup activePosition: '+activePosition);
 						
 				},
 				
