@@ -1,7 +1,6 @@
 
 /**
 * Jesse Weisbeck's Crossword Puzzle (for all 3 people left who want to play them)
-*
 */
 (function($){
 	$.fn.crossword = function(entryData) {
@@ -55,11 +54,9 @@
 				init: function() {
 					puzz.data = util.calculateCluePositions(entryData);
 					currOri = 'across'; // app's init orientation could move to config object
-
 					// Set keyup handlers for the 'entry' inputs that will be added presently
 					puzzEl.delegate('input', 'keyup', function(e){
 						mode = 'interacting';
-						
 						
 						// need to figure out orientation up front, before we attempt to highlight an entry
 						switch(e.which) {
@@ -83,23 +80,15 @@
 							e.keyCode === 39 ||
 							e.keyCode === 40 ||
 							e.keyCode === 8 ||
-							e.keyCode === 46 ) {			
-												
-
-							
+							e.keyCode === 46 ) {
 							if (e.keyCode === 8 || e.keyCode === 46) {
 								currOri === 'across' ? nav.nextPrevNav(e, 37) : nav.nextPrevNav(e, 38); 
 							} else {
 								nav.nextPrevNav(e);
 							}
-							
-							e.preventDefault();
-							return false;
-						} else {
-							
-							puzInit.checkAnswer(e);
-
 						}
+						
+						puzInit.checkAnswer(e);
 
 						e.preventDefault();
 						return false;					
@@ -107,7 +96,6 @@
 			
 					// tab navigation handler setup
 					puzzEl.delegate('input', 'keydown', function(e) {
-
 						if ( e.keyCode === 9) {
 							
 							mode = "setting ui";
@@ -345,8 +333,7 @@
 					- Checks current entry input group value against answer
 					- If not complete, auto-selects next input for user
 				*/
-				checkAnswer: function(e) {
-					
+				checkAnswer: function(e) {					
 					var valToCheck, currVal;
 					
 					util.getActivePositionFromClassGroup($(e.target));
@@ -385,7 +372,6 @@
 			var nav = {
 				
 				nextPrevNav: function(e, override) {
-
 					var len = $actives.length,
 						struck = override ? override : e.which,
 						el = $(e.target),
@@ -400,7 +386,6 @@
 					$('.current').removeClass('current');
 					
 					selector = '.position-' + activePosition + ' input';
-						
 					// move input focus/select to 'next' input
 					switch(struck) {
 						case 39:
@@ -459,9 +444,6 @@
 					$('.active').eq(0).focus();
 					$('.active').eq(0).select();
 					$('.active').eq(0).addClass('current');
-					
-					// store orientation for 'smart' auto-selecting next input
-					currOri = $('.clues-active').parent('ul').prop('id');
 										
 					activeClueIndex = $(clueLiEls).index(e.target);
 					
@@ -471,19 +453,20 @@
 				updateByEntry: function(e, next) {
 					var classes, next, clue, e1Ori, e2Ori, e1Cell, e2Cell;
 					
+
 					if(e.keyCode === 9 || next){
 						// handle tabbing through problems, which keys off clues and requires different handling		
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
 					
 						$('.clues-active').removeClass('.clues-active');
-												
-						next = $(clueLiEls[activeClueIndex]);
-						currOri = next.parent().prop('id');
-						activePosition = $(next).data('position');
-												
-						// skips over already-solved problems
-						util.getSkips(activeClueIndex);
-						activePosition = $(clueLiEls[activeClueIndex]).data('position');
+						
+						if(++activePosition >= puzz.data.length){
+							activePosition = 0;
+						}
+
+						// skips over already-solved problems.
+						// Doesn't seem to do anything.
+						// util.getSkips(activeClueIndex);
 						
 																								
 					} else {
@@ -491,15 +474,15 @@
 					
 						util.getActivePositionFromClassGroup(e.target);
 						
-						clue = $(clueLiEls + '[data-position=' + activePosition + ']');
 						activeClueIndex = $(clueLiEls).index(clue);
 						
-						currOri = clue.parent().prop('id');
-						
 					}
-						
-						util.highlightEntry();
-						util.highlightClue();
+
+					currOri = puzz.data[activePosition].orientation;
+					clue = $(clueLiEls + '[data-position=' + activePosition + ']');
+					
+					util.highlightEntry();
+					util.highlightClue();
 				}
 				
 			}; // end nav object
