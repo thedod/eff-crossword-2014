@@ -20,6 +20,7 @@
 		font: 62.5%/1.3em Helvetica, sans-serif;
 		width: 90.3%;
 		margin: 10px auto;
+		max-width:960px;
 	}
 		table { 
 			width: 100%;
@@ -112,6 +113,7 @@
 		#puzzle-clues li{
 			list-style:none;
 			padding-left:2em;
+			clear:both;
 		}
 		#puzzle-clues li .position{
 			position:absolute;
@@ -121,14 +123,47 @@
 		#puzzle-clues li .position:after{
 			content:".";
 		}
+
+		@media (max-width:700px){
+			#puzzle-wrapper,
+			#puzzle-clues {
+				float: none;
+				width: auto;
+				margin-right: 0;
+			}
+			#puzzle-wrapper{
+				margin:0 30px;
+			}
+			#puzzle-clues div{
+				padding:0;
+				float:left;
+				width:40%;
+				margin-left:5%;
+			}
+		}
+		@media (max-width:480px){
+			#puzzle-clues div{
+				float:none;
+				width:auto;
+			}
+			#puzzle-wrapper{
+				margin:0;
+			}
+		}
+
+		#puzzle-clues .words{
+			font-size:.9em;
+			color:#888;
+			float:right;
+			margin-left:.5em;
+		}
 		
 	</style>
 
 </head>
 
 <body>
-	
-<div id="puzzle-wrapper"><!-- crossword puzzle appended here --></div>
+<div id="puzzle-wrapper"></div>
 
 </body>
 </html>	

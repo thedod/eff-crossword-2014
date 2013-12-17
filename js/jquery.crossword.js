@@ -25,7 +25,7 @@
 			
 			// append clues markup after puzzle wrapper div
 			// This should be moved into a configuration object
-			this.after('<div id="puzzle-clues"><h2>Across</h2><ul id="across"></ul><h2>Down</h2><ul id="down"></ul></div>');
+			this.after('<div id="puzzle-clues"><div class="across"><h2>Across</h2><ul></ul></div><div class="down"><h2>Down</h2><ul></ul></div></div>');
 			
 			// initialize some variables
 			var tbl = ['<table id="puzzle">'],
@@ -42,6 +42,7 @@
 				$actives,
 				activePosition = 0,
 				activeClueIndex = 0,
+				hintsRemaining = 10,
 				currOri,
 				targetInput,
 				mode = 'interacting',
@@ -156,11 +157,12 @@
 					
 					// Puzzle clues added to DOM in calcCoords(), so now immediately put mouse focus on first clue
 					clueLiEls = $('#puzzle-clues li');
-					$('#' + currOri + ' li' ).eq(0).addClass('clues-active').focus();
+					$('.' + currOri + ' li' ).eq(0).addClass('clues-active').focus();
 				
 					// DELETE FOR BG
 					puzInit.buildTable();
 					puzInit.buildEntries();
+					puzInit.buildHintButton();
 					puzInit.adjustDims();
 										
 				},
@@ -177,19 +179,21 @@
 						// set up array of coordinates for each problem
 						entries.push(i);
 						entries[i] = [];
+						thisPuzz = puzz.data[i];
 
-						for (var x=0, j = puzz.data[i].answer.length; x < j; ++x) {
+						for (var x=0, j = thisPuzz.answer.length; x < j; ++x) {
 							entries[i].push(x);
-							coords = puzz.data[i].orientation === 'across' ? "" + puzz.data[i].startx++ + "," + puzz.data[i].starty + "" : "" + puzz.data[i].startx + "," + puzz.data[i].starty++ + "" ;
+							coords = thisPuzz.orientation === 'across' ? "" + thisPuzz.startx++ + "," + thisPuzz.starty + "" : "" + thisPuzz.startx + "," + thisPuzz.starty++ + "" ;
 							entries[i][x] = coords; 
 						}
 
 						// while we're in here, add clues to DOM!
-						$('#' + puzz.data[i].orientation).append(
+						$('.' + thisPuzz.orientation + ' ul').append(
 							$('<li tabindex="1" data-position="' + i + '"></li>')
-								.text(puzz.data[i].clue)
-								.prepend('<span class="position">'+puzz.data[i].position+'</span> ')
-						); 
+								.text(thisPuzz.clue)
+								.prepend($('<span class="words">').text(thisPuzz.words ? thisPuzz.words : thisPuzz.answer.length+' words'))
+								.prepend('<span class="position">'+thisPuzz.position+'</span> ')
+						);
 					}				
 					
 					// Calculate rows/cols by finding max coords of each entry, then picking the highest
@@ -267,7 +271,7 @@
 							if(i==0){
 								light.find('div').append('<span>'+puzz.data[x-1].position+'</span>');
 							}
-							
+
 							light
 								.addClass('position-' + (x-1))
 								.addClass('entry-' + (hasOffset ? x - positionOffset : x));
@@ -280,6 +284,46 @@
 					$('.active').eq(0).focus();
 					$('.active').eq(0).select();
 										
+				},
+
+				buildHintButton: function(){
+					var textCaption = 'Hint (% remaining)';
+					var $button = $('<a class="btn"></a>');
+
+					var updateHintsRemaining = function(remaining){
+						$button.text(textCaption.replace('%',remaining));
+					}
+					updateHintsRemaining(hintsRemaining);
+					$button.click(function(){
+						if(hintsRemaining < 1){
+							return;
+						}
+
+						var data = puzz.data[activePosition];
+						var $entries = $('.position-'+(activePosition)+' input');
+						var possibleCells = [];
+
+						// filter out entries which have already been filled.
+						$entries.each(function(i){
+							if($(this).val() == ''){
+								possibleCells.push(i);
+							}
+						});
+
+						if(possibleCells.length == 0){
+							// You've already solved this word.
+							return;
+						}
+						var random = Math.round(Math.random()*(possibleCells.length-1));
+						var $entry = $entries.eq(possibleCells[random]);
+
+						var clue = data.answer.substr(possibleCells[random],1);
+						$entry.val(clue);
+
+						updateHintsRemaining(--hintsRemaining);
+					});
+					clues.prepend($button);
+
 				},
 
 				adjustDims : function(){
