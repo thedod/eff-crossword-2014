@@ -257,18 +257,20 @@
 									$input.val(letters[i]);
 								}
 								$container.append($input);
-
-								// Add the number to the first letter of each word.
-								if(i==0){
-									$container.append('<span>'+puzz.data[x-1].position+'</span>');
-								}
 								
 								light
 									.addClass('light')
-									.addClass('entry-' + (hasOffset ? x - positionOffset : x))
-									.addClass('position-' + (x-1))
 									.append($container);
 							}
+
+							// Add the number to the first letter of each word.
+							if(i==0){
+								light.find('div').append('<span>'+puzz.data[x-1].position+'</span>');
+							}
+							
+							light
+								.addClass('position-' + (x-1))
+								.addClass('entry-' + (hasOffset ? x - positionOffset : x));
 						};
 						
 					};
