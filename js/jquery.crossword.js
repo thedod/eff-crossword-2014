@@ -231,7 +231,7 @@
 
 						for (var i=0; i < entries[x-1].length; ++i) {
 							var thisPuzz = puzz.data[x-2];
-							light = $(puzzCells +'[data-coords="' + entries[x-1][i] + '"]');
+							light = $('[data-coords="' + entries[x-1][i] + '"]');
 							
 							// check if POSITION property of the entry on current go-round is same as previous. 
 							// If so, it means there's an across & down entry for the position.
@@ -479,7 +479,7 @@
 					}
 
 					currOri = puzz.data[activePosition].orientation;
-					clue = $(clueLiEls + '[data-position=' + activePosition + ']');
+					clue = $('[data-position=' + activePosition + ']');
 					
 					util.highlightEntry();
 					util.highlightClue();
@@ -526,10 +526,10 @@
 				highlightClue: function() {
 					var clue;				
 					$('.clues-active').removeClass('clues-active');
-					$(clueLiEls + '[data-position=' + activePosition + ']').addClass('clues-active');
+					$('[data-position=' + activePosition + ']').addClass('clues-active');
 					
 					if (mode === 'interacting') {
-						clue = $(clueLiEls + '[data-position=' + activePosition + ']');
+						clue = $('[data-position=' + activePosition + ']');
 						activeClueIndex = $(clueLiEls).index(clue);
 					};
 				},
@@ -557,8 +557,8 @@
 
 						if(classes.length > 1){
 							// get orientation for each reported position
-							e1Ori = $(clueLiEls + '[data-position=' + classes[0].split('-')[1] + ']').parent().prop('id');
-							e2Ori = $(clueLiEls + '[data-position=' + classes[1].split('-')[1] + ']').parent().prop('id');
+							e1Ori = $('[data-position=' + classes[0].split('-')[1] + ']').parent().prop('id');
+							e2Ori = $('[data-position=' + classes[1].split('-')[1] + ']').parent().prop('id');
 
 							// test if clicked input is first in series. If so, and it intersects with
 							// entry of opposite orientation, switch to select this one instead
