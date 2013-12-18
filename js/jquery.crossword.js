@@ -3,7 +3,7 @@
 * Jesse Weisbeck's Crossword Puzzle (for all 3 people left who want to play them)
 */
 (function($){
-	$.fn.crossword = function(entryData) {
+	$.fn.crossword = function(opts) {
 			/*
 				Qurossword Puzzle: a javascript + jQuery crossword puzzle
 				"light" refers to a white box - or an input
@@ -20,7 +20,7 @@
 			*/
 			
 			var puzz = {}; // put data array in object literal to namespace it into safety
-			puzz.data = entryData;
+			puzz.data = opts.entryData;
 			
 			// append clues markup after puzzle wrapper div
 			// This should be moved into a configuration object
@@ -47,12 +47,12 @@
 				mode = 'interacting',
 				solvedToggle = false,
 				z = 0,
-				showAnswers=false;
+				showAnswers=opts.showAnswers || false;
 
 			var puzInit = {
 				
 				init: function() {
-					puzz.data = util.calculateCluePositions(entryData);
+					puzz.data = util.calculateCluePositions(puzz.data);
 					currOri = 'across'; // app's init orientation could move to config object
 					// Set keyup handlers for the 'entry' inputs that will be added presently
 					puzzEl.delegate('input', 'keyup', function(e){
@@ -179,7 +179,7 @@
 						$('.' + thisPuzz.orientation + ' ul').append(
 							$('<li tabindex="1" data-position="' + i + '"></li>')
 								.text(thisPuzz.clue)
-								.prepend($('<span class="words">').text(thisPuzz.words ? thisPuzz.words : thisPuzz.answer.length+' words'))
+								.prepend($('<span class="words">').text(thisPuzz.words ? thisPuzz.words : thisPuzz.answer.length+' letters'))
 								.prepend('<span class="position">'+thisPuzz.position+'</span> ')
 						);
 					}				
@@ -326,6 +326,12 @@
 					};
 					$(window).resize(onResize);
 					onResize();
+
+					// Sometimes this gets fired before time, so fire it again
+					// on window load when the DOM's presumably settled.
+					$(window).load(function(){
+						onResize();
+					})
 				},
 				
 				
