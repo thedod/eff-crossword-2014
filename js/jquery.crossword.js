@@ -397,7 +397,7 @@
 						struck = override ? override : e.which,
 						el = $(e.target),
 						p = el.closest('td'),
-						ps = el.closest('tr').next(),
+						ps = el.closest('tr'),
 						selector;
 				
 					util.getActivePositionFromClassGroup(el);
@@ -428,6 +428,7 @@
 
 						case 40:
 							ps
+								.next()
 								.find(selector)
 								.addClass('current')
 								.select();
@@ -436,7 +437,7 @@
 
 						case 38:
 							ps
-								.prev().prev()
+								.prev()
 								.find(selector)
 								.addClass('current')
 								.select();
