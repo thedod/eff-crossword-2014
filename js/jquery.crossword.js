@@ -74,21 +74,27 @@
 						
 						if ( e.keyCode === 9) {
 							return false;
-						} else if (
+						} else if (e.keyCode === 8 || e.keyCode === 46){
+							if(currOri === 'across'){
+								nav.nextPrevNav(e, 37);
+							} else {
+								nav.nextPrevNav(e, 38);
+							}
+						} else if(
 							e.keyCode === 37 ||
 							e.keyCode === 38 ||
 							e.keyCode === 39 ||
-							e.keyCode === 40 ||
-							e.keyCode === 8 ||
-							e.keyCode === 46 ) {
-							if (e.keyCode === 8 || e.keyCode === 46) {
-								currOri === 'across' ? nav.nextPrevNav(e, 37) : nav.nextPrevNav(e, 38); 
+							e.keyCode === 40
+						){
+							nav.nextPrevNav(e);
+						} else {
+							puzInit.checkAnswer(e);
+							if(currOri === 'across'){
+								nav.nextPrevNav(e, 39);
 							} else {
-								nav.nextPrevNav(e);
+								nav.nextPrevNav(e, 40);
 							}
 						}
-						
-						puzInit.checkAnswer(e);
 
 						e.preventDefault();
 						return false;					
@@ -377,8 +383,6 @@
 						solvedToggle = true;
 						return;
 					}
-					
-					currOri === 'across' ? nav.nextPrevNav(e, 39) : nav.nextPrevNav(e, 40);
 
 				}				
 
@@ -401,7 +405,6 @@
 					util.highlightClue();
 					
 					$('.current').removeClass('current');
-					
 					selector = '.position-' + activePosition + ' input';
 					// move input focus/select to 'next' input
 					switch(struck) {
@@ -433,6 +436,7 @@
 
 						case 38:
 							ps
+								.prev().prev()
 								.find(selector)
 								.addClass('current')
 								.select();
