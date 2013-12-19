@@ -230,7 +230,7 @@
 						var letters = puzz.data[x-1].answer.split('');
 
 						for (var i=0; i < entries[x-1].length; ++i) {
-							var thisPuzz = puzz.data[x-2];
+							var thisPuzz = puzz.data[x-1];
 							light = $('[data-coords="' + entries[x-1][i] + '"]');
 							
 							// check if POSITION property of the entry on current go-round is same as previous. 
@@ -254,6 +254,17 @@
 									.addClass('light')
 									.append($container);
 							}
+
+							var cells = light.data('cells') || [];
+
+							cells.push({
+								position : x-1,
+								entry: x,
+								letter : i,
+								data : thisPuzz,
+								el : light
+							});
+							light.data('cells',cells);
 
 							// Add the number to the first letter of each word.
 							if(i==0){
@@ -458,9 +469,9 @@
 				// Sets activePosition var and adds active class to current entry
 				updateByEntry: function(e, next) {
 					var classes, next, clue, e1Ori, e2Ori, e1Cell, e2Cell;
-					
 
 					if(e.keyCode === 9 || next){
+						console.log('9/next')
 						// handle tabbing through problems, which keys off clues and requires different handling		
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
 					
@@ -476,8 +487,9 @@
 						
 																								
 					} else {
+						console.log('setting pos')
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
-					
+						
 						util.getActivePositionFromClassGroup(e.target);
 						
 						activeClueIndex = $(clueLiEls).index(clue);
@@ -539,50 +551,24 @@
 						activeClueIndex = $(clueLiEls).index(clue);
 					};
 				},
-				
-				getClasses: function(light, type) {
-					if (!light.length) return false;
-					
-					var classes = $(light).prop('class').split(' '),
-					classLen = classes.length,
-					positions = []; 
-
-					// pluck out just the position classes
-					for(var i=0; i < classLen; ++i){
-						if (!classes[i].indexOf(type) ) {
-							positions.push(classes[i]);
-						}
-					}
-					
-					return positions;
-				},
 
 				getActivePositionFromClassGroup: function(el){
+					var cells = $(el).closest('td').data('cells');
+					if(cells.length > 1){
 
-						classes = util.getClasses($(el).closest('td'), 'position');
-
-						if(classes.length > 1){
-							// get orientation for each reported position
-							e1Ori = $('[data-position=' + classes[0].split('-')[1] + ']').parent().prop('id');
-							e2Ori = $('[data-position=' + classes[1].split('-')[1] + ']').parent().prop('id');
-
-							// test if clicked input is first in series. If so, and it intersects with
-							// entry of opposite orientation, switch to select this one instead
-							e1Cell = $('.position-' + classes[0].split('-')[1] + ' input').index(el);
-							e2Cell = $('.position-' + classes[1].split('-')[1] + ' input').index(el);
-
-							if(mode === "setting ui"){
-								currOri = e1Cell === 0 ? e1Ori : e2Ori; // change orientation if cell clicked was first in a entry of opposite direction
-							}
-
-							if(e1Ori === currOri){
-								activePosition = classes[0].split('-')[1];		
-							} else if(e2Ori === currOri){
-								activePosition = classes[1].split('-')[1];
-							}
-						} else {
-							activePosition = classes[0].split('-')[1];						
+						if(mode === "setting ui"){
+							currOri = cells[(cells[0].word === 0) ? 0 : 1].data.orientation
 						}
+
+						for(var i=0;i<cells.length;i++){
+							if(cells[i].data.orientation == currOri){
+								activePosition = cells[i].position
+							}
+						}
+
+					} else {
+						activePosition = cells[0].position;						
+					}
 						
 				},
 				
