@@ -476,7 +476,6 @@
 					var classes, next, clue, e1Ori, e2Ori, e1Cell, e2Cell;
 
 					if(e.keyCode === 9 || next){
-						console.log('9/next')
 						// handle tabbing through problems, which keys off clues and requires different handling		
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
 					
@@ -492,7 +491,6 @@
 						
 																								
 					} else {
-						console.log('setting pos')
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
 						
 						util.getActivePositionFromClassGroup(e.target);
