@@ -292,8 +292,8 @@
 				},
 
 				buildHintButton: function(){
-					var textCaption = 'Hint (% remaining)';
-					var $button = $('<a class="btn"></a>');
+					var textCaption = 'Reveal a letter (% remaining)';
+					var $button = $('<a class="btn reveal"></a>');
 
 					var updateHintsRemaining = function(remaining){
 						$button.text(textCaption.replace('%',remaining));
