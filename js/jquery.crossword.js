@@ -27,27 +27,48 @@
 			this.after('<div id="puzzle-clues"><div class="across"><h2>Across</h2><ul></ul></div><div class="down"><h2>Down</h2><ul></ul></div></div>');
 			
 			// initialize some variables
-			var tbl = ['<table id="puzzle">'],
-			    puzzEl = this,
-				clues = $('#puzzle-clues'),
-				clueLiEls,
-				coords,
-				entryCount = puzz.data.length,
-				entries = [], 
-				rows = [],
-				cols = [],
-				solved = [],
-				tabindex,
-				$actives,
-				activePosition = 0,
-				activeClueIndex = 0,
-				hintsRemaining = 10,
-				currOri,
-				targetInput,
-				mode = 'interacting',
-				solvedToggle = false,
-				z = 0,
-				showAnswers=opts.showAnswers || false;
+			var $complete = $('<div class="overlay"><h1>Congratulations!</h1><div class="message"></div><a class="close" href="#">X</a></div>');
+			var message = '<p>You completed the crossword, well done!</p>';
+
+			var tbl = ['<table id="puzzle">'];
+			var puzzEl = this;
+			var clues = $('#puzzle-clues');
+			var clueLiEls;
+			var coords;
+			var entryCount = puzz.data.length;
+			var entries = []; 
+			var rows = [];
+			var cols = [];
+			var tabindex;
+			var $actives;
+			var activePosition = 0;
+			var activeClueIndex = 0;
+			var hintsRemaining = 10;
+			var currOri;
+			var targetInput;
+			var mode = 'interacting';
+			var solvedToggle = false;
+			var z = 0;
+			var showAnswers=opts.showAnswers || false;
+			var GAME_DELIM='-';
+			var LOCALSTORAGE_KEY='crossword-';
+			var COOKIE_EXPIRY=21; //days
+			var HINT_CAPTION = 'Reveal a letter (% remaining)';
+
+
+			/**
+			 * Name for our savegame cookie.
+			 * @type {String}
+			 */
+			var cookieName = LOCALSTORAGE_KEY+opts.id;
+
+			/**
+			 * Path for our cookie to stop it leaking all over the
+			 * place. Remove anything after the trailing slash.
+			 * @type {[type]}
+			 */
+			var cookiePath = String(window.location.pathname)
+				.replace(/\/[^/]*$/,'/');
 
 			var puzInit = {
 				
@@ -126,7 +147,6 @@
 						}
 						nav.updateByEntry(e);
 						e.preventDefault();
-									
 					});
 					
 					
@@ -158,6 +178,7 @@
 					puzInit.buildEntries();
 					puzInit.buildHintButton();
 					puzInit.adjustDims();
+					puzInit.loadGame();
 										
 				},
 				
@@ -291,14 +312,14 @@
 										
 				},
 
+
+				updateHintsRemaining : function(remaining){
+					clues.find('.reveal').text(HINT_CAPTION.replace('%',remaining));
+				},
 				buildHintButton: function(){
-					var textCaption = 'Reveal a letter (% remaining)';
+					var _this = this;
 					var $button = $('<a class="btn reveal"></a>');
 
-					var updateHintsRemaining = function(remaining){
-						$button.text(textCaption.replace('%',remaining));
-					}
-					updateHintsRemaining(hintsRemaining);
 					$button.click(function(){
 						if(hintsRemaining < 1){
 							return;
@@ -325,10 +346,12 @@
 						var clue = data.answer.substr(possibleCells[random],1);
 						$entry.val(clue);
 
-						updateHintsRemaining(--hintsRemaining);
+						_this.updateHintsRemaining(--hintsRemaining);
+
+						_this.saveGame();
 					});
 					clues.prepend($button);
-
+					this.updateHintsRemaining(hintsRemaining);
 				},
 
 				adjustDims : function(){
@@ -357,7 +380,8 @@
 					- If not complete, auto-selects next input for user
 				*/
 				checkAnswer: function(e) {					
-					var valToCheck, currVal;
+					var valToCheck, currVal, cells;
+					cells = $(e.target).closest('td').data('cells');
 					
 					util.getActivePositionFromClassGroup($(e.target));
 				
@@ -378,13 +402,99 @@
 							.removeClass('active');
 					
 						$('.clues-active').addClass('clue-done');
-
-						solved.push(valToCheck);
 						solvedToggle = true;
+						puzz.data[activePosition].solved = true;
+					} else {
+						$('.active')
+							.removeClass('done')
+							.addClass('active');
+						
+						solvedToggle = false;
+
+						$('.clues-active').removeClass('clue-done');
+						puzz.data[activePosition].solved = false;
+					}
+
+					var gameComplete = true;
+					for(var i=0; i<puzz.data.length; i++){
+						if(!puzz.data[i].solved){
+							gameComplete = false;
+							break;
+						}
+					}
+					if(gameComplete){
+						this.triggerGameWon();
+					}
+
+					this.saveGame();
+
+				},
+				triggerGameWon : function(){
+					var $dialog = $complete
+						.clone()
+						.hide()
+						.find('.message')
+							.html(message)
+						.end()
+						.find('.close')
+							.click(function(){
+								var $closeable = $(this).closest('.overlay')
+								$closeable.fadeOut(function(){
+									$closeable.remove();
+								});
+							})
+						.end();
+					$('body').append($dialog);
+					$dialog.fadeIn();
+				},
+
+				/**
+				 * Save the game to a cookie, specified up there ^^ with our 
+				 * game settings.
+				 */
+				saveGame : function(){
+					var gameString = '';
+					puzzEl.find('input').each(function(){
+						gameString += ($(this).val() || GAME_DELIM);
+					});
+					gameString += hintsRemaining;
+
+					// Set the cookie using jquery-cookie if it exists.
+					// https://github.com/carhartl/jquery-cookie
+					$.cookie && $.cookie(cookieName,gameString,{
+						path:cookiePath,
+						expires: COOKIE_EXPIRY
+					});
+				},
+				/**
+				 * Load a game from a savegame string. Note that this will only
+				 * work for games with precisely the right layout, otherwise the
+				 * game code will be scrambled.
+				 * @param  {String} gameString Game string representing the user's savegame.
+				 */
+				loadGame : function(gameString){
+					var _this = this;
+					var $inputs = puzzEl.find('input');
+
+					if(!gameString){
+						gameString = $.cookie && $.cookie(cookieName);
+					}
+
+					if(!gameString || gameString.length < $inputs.length){
 						return;
 					}
 
-				}				
+					$inputs.each(function(i){
+						var chr = gameString.substr(i,1);
+						$(this).val(chr == GAME_DELIM ? '' : chr);
+					});
+
+					var hintsSaved = gameString.substr($inputs.length);
+					if(hintsSaved){
+						hintsRemaining = hintsSaved;
+						_this.updateHintsRemaining(hintsRemaining);
+					}
+				}
 
 
 			}; // end puzInit object
@@ -483,13 +593,7 @@
 						
 						if(++activePosition >= puzz.data.length){
 							activePosition = 0;
-						}
-
-						// skips over already-solved problems.
-						// Doesn't seem to do anything.
-						// util.getSkips(activeClueIndex);
-						
-																								
+						}																
 					} else {
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
 						
@@ -573,15 +677,6 @@
 						activePosition = cells[0].position;						
 					}
 						
-				},
-				
-				checkSolved: function(valToCheck) {
-					for (var i=0, s=solved.length; i < s; i++) {
-						if(valToCheck === solved[i]){
-							return true;
-						}
-
-					}
 				},
 				
 				getSkips: function(position) {

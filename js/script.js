@@ -152,7 +152,9 @@
 			] 
 	
 		$('#puzzle-wrapper').crossword({
-			entryData:entryData
+			entryData: entryData,
+			showAnswers: false
+            id: "my-crossword"
 		});
 		
 	})
