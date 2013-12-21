@@ -1,6 +1,7 @@
 
 /**
 * Jesse Weisbeck's Crossword Puzzle (for all 3 people left who want to play them)
+* Tweaks by The Dod (@TheRealDod)
 *
 */
 (function($){
@@ -13,6 +14,7 @@
 				- activePosition and activeClueIndex are the primary vars that set the ui whenever there's an interaction
 				- 'Entry' is a puzzler term used to describe the group of letter inputs representing a word solution
 				- This puzzle isn't designed to securely hide answerers. A user can see answerers in the js source
+					- The Dod added an options for rot13 (against *accidental* disclosure. Not against cheating).
 					- An xhr provision can be added later to hit an endpoint on keyup to check the answerer
 				- The ordering of the array of problems doesn't matter. The position & orientation properties is enough information
 				- Puzzle authors must provide a starting x,y coordinates for each entry
@@ -25,7 +27,8 @@
 			
 			// append clues markup after puzzle wrapper div
 			// This should be moved into a configuration object
-			this.after('<div id="puzzle-clues"><h2>Across</h2><ol id="across"></ol><h2>Down</h2><ol id="down"></ol></div>');
+			// changed ol to ul. was: this.after('<div id="puzzle-clues"><h2>Across</h2><ol id="across"></ol><h2>Down</h2><ol id="down"></ol></div>');
+			this.after('<div id="puzzle-clues"><h2>Across</h2><ul id="across"></ul><h2>Down</h2><ul id="down"></ul></div>');
 			
 			// initialize some variables
 			var tbl = ['<table id="puzzle">'],
@@ -191,7 +194,7 @@
 						}
 
 						// while we're in here, add clues to DOM!
-						$('#' + puzz.data[i].orientation).append('<li tabindex="1" data-position="' + i + '">' + puzz.data[i].clue + '</li>'); 
+						$('#' + puzz.data[i].orientation).append('<li tabindex="1" data-position="' + i + '">' + puzz.data[i].position + ') ' + puzz.data[i].clue + '</li>'); 
 					}				
 					
 					// Calculate rows/cols by finding max coords of each entry, then picking the highest
@@ -271,11 +274,10 @@
 					
 					util.highlightEntry();
 					util.highlightClue();
-					$('.active').eq(0).focus();
+					$('.active').eq(0).select();
 					$('.active').eq(0).select();
 										
 				},
-				
 				
 				/*
 					- Checks current entry input group value against answer
@@ -288,7 +290,8 @@
 					util.getActivePositionFromClassGroup($(e.target));
 				
 					valToCheck = puzz.data[activePosition].answer.toLowerCase();
-
+                                        if (puzz.data[activePosition].rot13)
+                                            valToCheck=util.rot13(valToCheck);
 					currVal = $('.position-' + activePosition + ' input')
 						.map(function() {
 					  		return $(this)
@@ -533,6 +536,18 @@
 
 					}
 				},
+				/*
+                                    Rot13 hides answers from *accidental* disclosure. Cheaters can still cheat :)
+                                */
+                                rot13: function(s) {
+                                    return (s ? s : this).split('').map(function(_)
+                                    {
+                                         if (!_.match(/[A-za-z]/)) return _;
+                                         c = Math.floor(_.charCodeAt(0) / 97);
+                                         k = (_.toLowerCase().charCodeAt(0) - 83) % 26 || 26;
+                                         return String.fromCharCode(k + ((c == 0) ? 64 : 96));
+                                    }).join('');
+                                },
 				
 				getSkips: function(position) {
 					if ($(clueLiEls[position]).hasClass('clue-done')){
