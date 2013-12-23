@@ -312,7 +312,7 @@
 					
 					util.highlightEntry();
 					util.highlightClue();
-					$('.active').eq(0).select();
+					$('.active').eq(0).focus();
 					$('.active').eq(0).select();
 										
 				},
@@ -379,6 +379,7 @@
 						onResize();
 					})
 				},
+				
 				
 				/*
 					- Checks current entry input group value against answer
