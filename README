@@ -1,5 +1,0 @@
-* @jlweisbeck has built this crossword puzzle to provide an enhanced, more intuitive user experience with javascript.
-* @TheRealDod tweaked it a bit and changed the content to EFF's Xmas 2013 NSA puzzle.
-
-Note: this fork doesn't show definition numbers (positions) inside the puzzle, because it got buggy.
-Feel free to fix this :)

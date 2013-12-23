@@ -1,13 +1,12 @@
-// A javascript-enhanced crossword puzzle [c] Jesse Weisbeck, MIT/GPL 
-// loosely forked by @TheRealDod
-
+// A javascript-enhanced crossword puzzle [c] Jesse Weisbeck, Ash Kyd, The [real] Dod, MIT/GPL 
+// Content [c] Electronic Frontier Foundation, https://www.eff.org/copyright
 
 (function($) {
 	$(function() {
 		// provide crossword entries in an array of objects like the following example
 		// Position refers to the numerical order of an entry. Each position can have 
 		// two entries: an across entry and a down entry
-		var puzzleData = [
+		var entryData = [
 			 	{
 					clue: "NSA program that the government claims is justified by Section 702 of the FISA Amendments Act.",
 					answer: "cevfz",
@@ -282,8 +281,8 @@
 					starty: 17
 				}
 			] 
-		$('#puzzle-wrapper').crossword(puzzleData);
-		
+                // Note: you can change showAnswers to true, but #CeilingKeith would know
+		$('#puzzle-wrapper').crossword({ entryData: entryData, showAnswers: false, id: "nsa-crossword" });
 	})
 	
 })(jQuery)

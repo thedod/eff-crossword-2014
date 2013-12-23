@@ -1,11 +1,11 @@
-
 /**
-* Jesse Weisbeck's Crossword Puzzle (for all 3 people left who want to play them)
-* Tweaks by The Dod (@TheRealDod)
+* Crossword Puzzle by Jesse Weisbeck (@jlweisbeck)
+* Various tweaks by Ash Kyd (@AshKyd)
+* Rot13 tweak and nsa.js content option by The Dod (@TheRealDod)
 *
 */
 (function($){
-	$.fn.crossword = function(entryData) {
+	$.fn.crossword = function(opts) {
 			/*
 				Qurossword Puzzle: a javascript + jQuery crossword puzzle
 				"light" refers to a white box - or an input
@@ -23,48 +23,64 @@
 			*/
 			
 			var puzz = {}; // put data array in object literal to namespace it into safety
-			puzz.data = entryData;
+			puzz.data = opts.entryData;
 			
 			// append clues markup after puzzle wrapper div
 			// This should be moved into a configuration object
-			// changed ol to ul. was: this.after('<div id="puzzle-clues"><h2>Across</h2><ol id="across"></ol><h2>Down</h2><ol id="down"></ol></div>');
-			this.after('<div id="puzzle-clues"><h2>Across</h2><ul id="across"></ul><h2>Down</h2><ul id="down"></ul></div>');
+			this.after('<div id="puzzle-clues"><div class="across"><h2>Across</h2><ul></ul></div><div class="down"><h2>Down</h2><ul></ul></div></div>');
 			
 			// initialize some variables
-			var tbl = ['<table id="puzzle">'],
-			    puzzEl = this,
-				clues = $('#puzzle-clues'),
-				clueLiEls,
-				coords,
-				entryCount = puzz.data.length,
-				entries = [], 
-				rows = [],
-				cols = [],
-				solved = [],
-				tabindex,
-				$actives,
-				activePosition = 0,
-				activeClueIndex = 0,
-				currOri,
-				targetInput,
-				mode = 'interacting',
-				solvedToggle = false,
-				z = 0;
+			var $complete = $('<div class="overlay"><h1>Congratulations!</h1><div class="message"></div><a class="close" href="#">X</a></div>');
+			var message = '<p>You completed the crossword, well done!</p>';
+
+			var tbl = ['<table id="puzzle">'];
+			var puzzEl = this;
+			var clues = $('#puzzle-clues');
+			var clueLiEls;
+			var coords;
+			var entryCount = puzz.data.length;
+			var entries = []; 
+			var rows = [];
+			var cols = [];
+			var tabindex;
+			var $actives;
+			var activePosition = 0;
+			var activeClueIndex = 0;
+			var hintsRemaining = 10;
+			var currOri;
+			var targetInput;
+			var mode = 'interacting';
+			var solvedToggle = false;
+			var z = 0;
+			var showAnswers=opts.showAnswers || false;
+			var GAME_DELIM='-';
+			var LOCALSTORAGE_KEY='crossword-';
+			var COOKIE_EXPIRY=21; //days
+			var HINT_CAPTION = 'Reveal a letter (% remaining)';
+
+
+			/**
+			 * Name for our savegame cookie.
+			 * @type {String}
+			 */
+			var cookieName = LOCALSTORAGE_KEY+opts.id;
+
+			/**
+			 * Path for our cookie to stop it leaking all over the
+			 * place. Remove anything after the trailing slash.
+			 * @type {[type]}
+			 */
+			var cookiePath = String(window.location.pathname)
+				.replace(/\/[^/]*$/,'/');
 
 			var puzInit = {
 				
 				init: function() {
+					puzz.data = util.calculateCluePositions(puzz.data);
 					currOri = 'across'; // app's init orientation could move to config object
-					
-					// Reorder the problems array ascending by POSITION
-					puzz.data.sort(function(a,b) {
-						return a.position - b.position;
-					});
-
 					// Set keyup handlers for the 'entry' inputs that will be added presently
 					puzzEl.delegate('input', 'keyup', function(e){
 						mode = 'interacting';
-						
 						
 						// need to figure out orientation up front, before we attempt to highlight an entry
 						switch(e.which) {
@@ -82,30 +98,26 @@
 						
 						if ( e.keyCode === 9) {
 							return false;
-						} else if (
+						} else if (e.keyCode === 8 || e.keyCode === 46){
+							if(currOri === 'across'){
+								nav.nextPrevNav(e, 37);
+							} else {
+								nav.nextPrevNav(e, 38);
+							}
+						} else if(
 							e.keyCode === 37 ||
 							e.keyCode === 38 ||
 							e.keyCode === 39 ||
-							e.keyCode === 40 ||
-							e.keyCode === 8 ||
-							e.keyCode === 46 ) {			
-												
-
-							
-							if (e.keyCode === 8 || e.keyCode === 46) {
-								currOri === 'across' ? nav.nextPrevNav(e, 37) : nav.nextPrevNav(e, 38); 
-							} else {
-								nav.nextPrevNav(e);
-							}
-							
-							e.preventDefault();
-							return false;
+							e.keyCode === 40
+						){
+							nav.nextPrevNav(e);
 						} else {
-							
-							console.log('input keyup: '+solvedToggle);
-							
 							puzInit.checkAnswer(e);
-
+							if(currOri === 'across'){
+								nav.nextPrevNav(e, 39);
+							} else {
+								nav.nextPrevNav(e, 40);
+							}
 						}
 
 						e.preventDefault();
@@ -114,7 +126,6 @@
 			
 					// tab navigation handler setup
 					puzzEl.delegate('input', 'keydown', function(e) {
-
 						if ( e.keyCode === 9) {
 							
 							mode = "setting ui";
@@ -134,20 +145,17 @@
 					// tab navigation handler setup
 					puzzEl.delegate('input', 'click', function(e) {
 						mode = "setting ui";
-						if (solvedToggle) solvedToggle = false;
-
-						console.log('input click: '+solvedToggle);
-					
+						if (solvedToggle){
+							solvedToggle = false;
+						}
 						nav.updateByEntry(e);
 						e.preventDefault();
-									
 					});
 					
 					
 					// click/tab clues 'navigation' handler setup
 					clues.delegate('li', 'click', function(e) {
 						mode = 'setting ui';
-						
 						if (!e.keyCode) {
 							nav.updateByNav(e);
 						} 
@@ -166,11 +174,14 @@
 					
 					// Puzzle clues added to DOM in calcCoords(), so now immediately put mouse focus on first clue
 					clueLiEls = $('#puzzle-clues li');
-					$('#' + currOri + ' li' ).eq(0).addClass('clues-active').focus();
+					$('.' + currOri + ' li' ).eq(0).addClass('clues-active').focus();
 				
 					// DELETE FOR BG
 					puzInit.buildTable();
 					puzInit.buildEntries();
+					puzInit.buildHintButton();
+					puzInit.adjustDims();
+					puzInit.loadGame();
 										
 				},
 				
@@ -186,15 +197,21 @@
 						// set up array of coordinates for each problem
 						entries.push(i);
 						entries[i] = [];
+						thisPuzz = puzz.data[i];
 
-						for (var x=0, j = puzz.data[i].answer.length; x < j; ++x) {
+						for (var x=0, j = thisPuzz.answer.length; x < j; ++x) {
 							entries[i].push(x);
-							coords = puzz.data[i].orientation === 'across' ? "" + puzz.data[i].startx++ + "," + puzz.data[i].starty + "" : "" + puzz.data[i].startx + "," + puzz.data[i].starty++ + "" ;
+							coords = thisPuzz.orientation === 'across' ? "" + thisPuzz.startx++ + "," + thisPuzz.starty + "" : "" + thisPuzz.startx + "," + thisPuzz.starty++ + "" ;
 							entries[i][x] = coords; 
 						}
 
 						// while we're in here, add clues to DOM!
-						$('#' + puzz.data[i].orientation).append('<li tabindex="1" data-position="' + i + '">' + puzz.data[i].position + ') ' + puzz.data[i].clue + '</li>'); 
+						$('.' + thisPuzz.orientation + ' ul').append(
+							$('<li tabindex="1" data-position="' + i + '"></li>')
+								.text(thisPuzz.clue)
+								.prepend($('<span class="words">').text(thisPuzz.words ? thisPuzz.words : thisPuzz.answer.length+' letters'))
+								.prepend('<span class="position">'+thisPuzz.position+'</span> ')
+						);
 					}				
 					
 					// Calculate rows/cols by finding max coords of each entry, then picking the highest
@@ -240,37 +257,58 @@
 						positionOffset = entryCount - puzz.data[puzz.data.length-1].position; // diff. between total ENTRIES and highest POSITIONS
 						
 					for (var x=1, p = entryCount; x <= p; ++x) {
-						var letters = puzz.data[x-1].answer.split('');
+						var letters = (puzz.data[x-1].rot13 ?
+                                                    util.rot13(puzz.data[x-1].answer) : puzz.data[x-1].answer
+                                                ).split('');
 
 						for (var i=0; i < entries[x-1].length; ++i) {
-							light = $(puzzCells +'[data-coords="' + entries[x-1][i] + '"]');
+							var thisPuzz = puzz.data[x-1];
+							light = $('[data-coords="' + entries[x-1][i] + '"]');
 							
 							// check if POSITION property of the entry on current go-round is same as previous. 
 							// If so, it means there's an across & down entry for the position.
 							// Therefore you need to subtract the offset when applying the entry class.
 							if(x > 1 ){
-								if (puzz.data[x-1].position === puzz.data[x-2].position) {
+								if (thisPuzz.position === puzz.data[x-2].position) {
 									hasOffset = true;
 								};
 							}
 							
-							if($(light).empty()){
-								$(light)
-									.addClass('entry-' + (hasOffset ? x - positionOffset : x) + ' position-' + (x-1) )
-									.append('<input maxlength="1" val="" type="text" tabindex="-1" />');
+							if(light.is(':empty')){
+								var $container = $('<div>');
+								var $input = $('<input maxlength="1" val="" type="text" tabindex="-1" />');
+								if(showAnswers){
+									$input.val(letters[i]);
+								}
+								$container.append($input);
+								
+								light
+									.addClass('light')
+									.append($container);
 							}
+
+							var cells = light.data('cells') || [];
+
+							cells.push({
+								position : x-1,
+								entry: x,
+								letter : i,
+								data : thisPuzz,
+								el : light
+							});
+							light.data('cells',cells);
+
+							// Add the number to the first letter of each word.
+							if(i==0){
+								light.find('div').append('<span>'+puzz.data[x-1].position+'</span>');
+							}
+
+							light
+								.addClass('position-' + (x-1))
+								.addClass('entry-' + (hasOffset ? x - positionOffset : x));
 						};
 						
-					};	
-					
-					// Put entry number in first 'light' of each entry, skipping it if already present
-					for (var i=1, p = entryCount; i < p; ++i) {
-						$groupedLights = $('.entry-' + i);
-						if(!$('.entry-' + i +':eq(0) span').length){
-							$groupedLights.eq(0)
-								.append('<span>' + puzz.data[i].position + '</span>');
-						}
-					}	
+					};
 					
 					util.highlightEntry();
 					util.highlightClue();
@@ -278,14 +316,77 @@
 					$('.active').eq(0).select();
 										
 				},
+
+
+				updateHintsRemaining : function(remaining){
+					clues.find('.reveal').text(HINT_CAPTION.replace('%',remaining));
+				},
+				buildHintButton: function(){
+					var _this = this;
+					var $button = $('<a class="btn reveal"></a>');
+
+					$button.click(function(){
+						if(hintsRemaining < 1){
+							return;
+						}
+
+						var data = puzz.data[activePosition];
+						var $entries = $('.position-'+(activePosition)+' input');
+						var possibleCells = [];
+
+						// filter out entries which have already been filled.
+						$entries.each(function(i){
+							if($(this).val() == ''){
+								possibleCells.push(i);
+							}
+						});
+
+						if(possibleCells.length == 0){
+							// You've already solved this word.
+							return;
+						}
+						var random = Math.round(Math.random()*(possibleCells.length-1));
+						var $entry = $entries.eq(possibleCells[random]);
+
+						var clue = data.answer.substr(possibleCells[random],1);
+                                                if (data.rot13) clue = util.rot13(clue);
+						$entry.val(clue);
+
+						_this.updateHintsRemaining(--hintsRemaining);
+
+						_this.saveGame();
+					});
+					clues.prepend($button);
+					this.updateHintsRemaining(hintsRemaining);
+				},
+
+				adjustDims : function(){
+					var onResize = function(){
+						var $table = $(puzzEl).find('table');
+						var w = $table.width();
+						$table.height(w);
+						$table.css('font-size',w/400+'em');
+
+						var cellHeight = Math.ceil($table.find('input').width());
+						$table.find('input').height(cellHeight);
+					};
+					$(window).resize(onResize);
+					onResize();
+
+					// Sometimes this gets fired before time, so fire it again
+					// on window load when the DOM's presumably settled.
+					$(window).load(function(){
+						onResize();
+					})
+				},
 				
 				/*
 					- Checks current entry input group value against answer
 					- If not complete, auto-selects next input for user
 				*/
-				checkAnswer: function(e) {
-					
-					var valToCheck, currVal;
+				checkAnswer: function(e) {					
+					var valToCheck, currVal, cells;
+					cells = $(e.target).closest('td').data('cells');
 					
 					util.getActivePositionFromClassGroup($(e.target));
 				
@@ -301,26 +402,105 @@
 						.get()
 						.join('');
 					
-					//console.log(currVal + " " + valToCheck);
 					if(valToCheck === currVal){	
 						$('.active')
 							.addClass('done')
 							.removeClass('active');
 					
 						$('.clues-active').addClass('clue-done');
-
-						solved.push(valToCheck);
 						solvedToggle = true;
+						puzz.data[activePosition].solved = true;
+					} else {
+						$('.active')
+							.removeClass('done')
+							.addClass('active');
+						
+						solvedToggle = false;
+
+						$('.clues-active').removeClass('clue-done');
+						puzz.data[activePosition].solved = false;
+					}
+
+					var gameComplete = true;
+					for(var i=0; i<puzz.data.length; i++){
+						if(!puzz.data[i].solved){
+							gameComplete = false;
+							break;
+						}
+					}
+					if(gameComplete){
+						this.triggerGameWon();
+					}
+
+					this.saveGame();
+
+				},
+				triggerGameWon : function(){
+					var $dialog = $complete
+						.clone()
+						.hide()
+						.find('.message')
+							.html(message)
+						.end()
+						.find('.close')
+							.click(function(){
+								var $closeable = $(this).closest('.overlay')
+								$closeable.fadeOut(function(){
+									$closeable.remove();
+								});
+							})
+						.end();
+					$('body').append($dialog);
+					$dialog.fadeIn();
+				},
+
+				/**
+				 * Save the game to a cookie, specified up there ^^ with our 
+				 * game settings.
+				 */
+				saveGame : function(){
+					var gameString = '';
+					puzzEl.find('input').each(function(){
+						gameString += ($(this).val() || GAME_DELIM);
+					});
+					gameString += hintsRemaining;
+
+					// Set the cookie using jquery-cookie if it exists.
+					// https://github.com/carhartl/jquery-cookie
+					$.cookie && $.cookie(cookieName,gameString,{
+						path:cookiePath,
+						expires: COOKIE_EXPIRY
+					});
+				},
+				/**
+				 * Load a game from a savegame string. Note that this will only
+				 * work for games with precisely the right layout, otherwise the
+				 * game code will be scrambled.
+				 * @param  {String} gameString Game string representing the user's savegame.
+				 */
+				loadGame : function(gameString){
+					var _this = this;
+					var $inputs = puzzEl.find('input');
+
+					if(!gameString){
+						gameString = $.cookie && $.cookie(cookieName);
+					}
+
+					if(!gameString || gameString.length < $inputs.length){
 						return;
 					}
-					
-					currOri === 'across' ? nav.nextPrevNav(e, 39) : nav.nextPrevNav(e, 40);
-					
-					//z++;
-					//console.log(z);
-					//console.log('checkAnswer() solvedToggle: '+solvedToggle);
 
-				}				
+					$inputs.each(function(i){
+						var chr = gameString.substr(i,1);
+						$(this).val(chr == GAME_DELIM ? '' : chr);
+					});
+
+					var hintsSaved = gameString.substr($inputs.length);
+					if(hintsSaved){
+						hintsRemaining = hintsSaved;
+						_this.updateHintsRemaining(hintsRemaining);
+					}
+				}
 
 
 			}; // end puzInit object
@@ -329,12 +509,11 @@
 			var nav = {
 				
 				nextPrevNav: function(e, override) {
-
 					var len = $actives.length,
 						struck = override ? override : e.which,
 						el = $(e.target),
-						p = el.parent(),
-						ps = el.parents(),
+						p = el.closest('td'),
+						ps = el.closest('tr'),
 						selector;
 				
 					util.getActivePositionFromClassGroup(el);
@@ -342,11 +521,7 @@
 					util.highlightClue();
 					
 					$('.current').removeClass('current');
-					
 					selector = '.position-' + activePosition + ' input';
-					
-					//console.log('nextPrevNav activePosition & struck: '+ activePosition + ' '+struck);
-						
 					// move input focus/select to 'next' input
 					switch(struck) {
 						case 39:
@@ -369,7 +544,7 @@
 
 						case 40:
 							ps
-								.next('tr')
+								.next()
 								.find(selector)
 								.addClass('current')
 								.select();
@@ -378,7 +553,7 @@
 
 						case 38:
 							ps
-								.prev('tr')
+								.prev()
 								.find(selector)
 								.addClass('current')
 								.select();
@@ -393,7 +568,6 @@
 	
 				updateByNav: function(e) {
 					var target;
-					
 					$('.clues-active').removeClass('clues-active');
 					$('.active').removeClass('active');
 					$('.current').removeClass('current');
@@ -404,61 +578,72 @@
 					
 					util.highlightEntry();
 					util.highlightClue();
-										
+
 					$('.active').eq(0).focus();
 					$('.active').eq(0).select();
 					$('.active').eq(0).addClass('current');
-					
-					// store orientation for 'smart' auto-selecting next input
-					currOri = $('.clues-active').parent('ol').prop('id');
 										
 					activeClueIndex = $(clueLiEls).index(e.target);
-					//console.log('updateByNav() activeClueIndex: '+activeClueIndex);
 					
 				},
 			
 				// Sets activePosition var and adds active class to current entry
 				updateByEntry: function(e, next) {
 					var classes, next, clue, e1Ori, e2Ori, e1Cell, e2Cell;
-					
+
 					if(e.keyCode === 9 || next){
 						// handle tabbing through problems, which keys off clues and requires different handling		
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
 					
 						$('.clues-active').removeClass('.clues-active');
-												
-						next = $(clueLiEls[activeClueIndex]);
-						currOri = next.parent().prop('id');
-						activePosition = $(next).data('position');
-												
-						// skips over already-solved problems
-						util.getSkips(activeClueIndex);
-						activePosition = $(clueLiEls[activeClueIndex]).data('position');
 						
-																								
+						if(++activePosition >= puzz.data.length){
+							activePosition = 0;
+						}																
 					} else {
 						activeClueIndex = activeClueIndex === clueLiEls.length-1 ? 0 : ++activeClueIndex;
-					
+						
 						util.getActivePositionFromClassGroup(e.target);
 						
-						clue = $(clueLiEls + '[data-position=' + activePosition + ']');
 						activeClueIndex = $(clueLiEls).index(clue);
 						
-						currOri = clue.parent().prop('id');
-						
 					}
-						
-						util.highlightEntry();
-						util.highlightClue();
-						
-						//$actives.eq(0).addClass('current');	
-						//console.log('nav.updateByEntry() reports activePosition as: '+activePosition);	
+
+					currOri = puzz.data[activePosition].orientation;
+					clue = $('[data-position=' + activePosition + ']');
+					
+					util.highlightEntry();
+					util.highlightClue();
 				}
 				
 			}; // end nav object
 
 			
 			var util = {
+				calculateCluePositions : function(clues){
+
+					for(var i=0; i<puzz.data.length; i++){
+						puzz.data[i].position = (puzz.data[i].startx + puzz.data[i].starty*100);
+					}
+
+					// Reorder the problems array ascending by POSITION
+					puzz.data.sort(function(a,b) {
+						return a.position - b.position;
+					});
+
+					var index = 0;
+					var lastIndex = false;
+					for(var i=0; i<puzz.data.length; i++){
+						if(puzz.data[i].position != lastIndex){
+							index++;
+						}
+						lastIndex = puzz.data[i].position;
+						puzz.data[i].position = index;
+					}
+
+					return clues;
+				},
+
 				highlightEntry: function() {
 					// this routine needs to be smarter because it doesn't need to fire every time, only
 					// when activePosition changes
@@ -472,69 +657,32 @@
 				highlightClue: function() {
 					var clue;				
 					$('.clues-active').removeClass('clues-active');
-					$(clueLiEls + '[data-position=' + activePosition + ']').addClass('clues-active');
+					$('[data-position=' + activePosition + ']').addClass('clues-active');
 					
 					if (mode === 'interacting') {
-						clue = $(clueLiEls + '[data-position=' + activePosition + ']');
+						clue = $('[data-position=' + activePosition + ']');
 						activeClueIndex = $(clueLiEls).index(clue);
 					};
 				},
-				
-				getClasses: function(light, type) {
-					if (!light.length) return false;
-					
-					var classes = $(light).prop('class').split(' '),
-					classLen = classes.length,
-					positions = []; 
-
-					// pluck out just the position classes
-					for(var i=0; i < classLen; ++i){
-						if (!classes[i].indexOf(type) ) {
-							positions.push(classes[i]);
-						}
-					}
-					
-					return positions;
-				},
 
 				getActivePositionFromClassGroup: function(el){
+					var cells = $(el).closest('td').data('cells');
+					if(cells.length > 1){
 
-						classes = util.getClasses($(el).parent(), 'position');
-
-						if(classes.length > 1){
-							// get orientation for each reported position
-							e1Ori = $(clueLiEls + '[data-position=' + classes[0].split('-')[1] + ']').parent().prop('id');
-							e2Ori = $(clueLiEls + '[data-position=' + classes[1].split('-')[1] + ']').parent().prop('id');
-
-							// test if clicked input is first in series. If so, and it intersects with
-							// entry of opposite orientation, switch to select this one instead
-							e1Cell = $('.position-' + classes[0].split('-')[1] + ' input').index(el);
-							e2Cell = $('.position-' + classes[1].split('-')[1] + ' input').index(el);
-
-							if(mode === "setting ui"){
-								currOri = e1Cell === 0 ? e1Ori : e2Ori; // change orientation if cell clicked was first in a entry of opposite direction
-							}
-
-							if(e1Ori === currOri){
-								activePosition = classes[0].split('-')[1];		
-							} else if(e2Ori === currOri){
-								activePosition = classes[1].split('-')[1];
-							}
-						} else {
-							activePosition = classes[0].split('-')[1];						
-						}
-						
-						console.log('getActivePositionFromClassGroup activePosition: '+activePosition);
-						
-				},
-				
-				checkSolved: function(valToCheck) {
-					for (var i=0, s=solved.length; i < s; i++) {
-						if(valToCheck === solved[i]){
-							return true;
+						if(mode === "setting ui"){
+							currOri = cells[(cells[0].word === 0) ? 0 : 1].data.orientation
 						}
 
+						for(var i=0;i<cells.length;i++){
+							if(cells[i].data.orientation == currOri){
+								activePosition = cells[i].position
+							}
+						}
+
+					} else {
+						activePosition = cells[0].position;						
 					}
+						
 				},
 				/*
                                     Rot13 hides answers from *accidental* disclosure. Cheaters can still cheat :)

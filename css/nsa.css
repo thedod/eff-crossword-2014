@@ -1,0 +1,6 @@
+table { 
+	background: #333 url('../gfx/ceiling-keith-pat.jpg') repeat;
+}
+table td {
+	background: inherit;
+}

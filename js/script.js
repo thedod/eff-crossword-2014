@@ -4,7 +4,7 @@
 		// provide crossword entries in an array of objects like the following example
 		// Position refers to the numerical order of an entry. Each position can have 
 		// two entries: an across entry and a down entry
-		var puzzleData = [
+		var entryData = [
 			 	{
 					clue: "First letter of greek alphabet",
 					answer: "alpha",
@@ -151,7 +151,11 @@
 				}
 			] 
 	
-		$('#puzzle-wrapper').crossword(puzzleData);
+		$('#puzzle-wrapper').crossword({
+			entryData: entryData,
+			showAnswers: false,
+			id: "my-crossword"
+		});
 		
 	})
 	
