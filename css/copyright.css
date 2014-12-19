@@ -1,0 +1,8 @@
+table { 
+	background: #333 url('../gfx/monkey-hear-no-evil.png')
+	no-repeat center center; 
+	background-size: contain;
+}
+table td {
+	background: inherit;
+}
