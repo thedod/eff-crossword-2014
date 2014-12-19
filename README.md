@@ -1,9 +1,3 @@
-
-### To do
-
-* Replace `https://www.eff.org/#replace-this-with-path-to-2014-puzzle` with proper URL (once we have one)
-  both at `index.html` and `README.md`
-
 ### Code
 
 1. [Jesse Weisbeck](http://www.jesseweisbeck.com/) has built this crossword puzzle to provide an enhanced,
@@ -15,6 +9,6 @@ Your turn :)
 
 ### Content
 
-The Electronic Frontier Foundation's 2014 Crossword: [The Year in Copyright News](https://www.eff.org/#replace-this-with-path-to-2014-puzzle)
+The Electronic Frontier Foundation's 2014 Crossword: [The Year in Copyright News](https://www.eff.org/deeplinks/2014/12/crossword-puzzle-year-copyright-news)
 
 See also: [2013 crossword](https://thedod.github.io/nsa-crossword/).
