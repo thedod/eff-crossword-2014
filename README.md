@@ -1,7 +1,6 @@
 
 ### To do
 
-* Replace background with something better (add credit if needed).
 * Replace `https://www.eff.org/#replace-this-with-path-to-2014-puzzle` with proper URL (once we have one)
   both at `index.html` and `README.md`
 

@@ -1,7 +1,7 @@
 table { 
-	background: #333 url('../gfx/monkey-hear-no-evil.png')
+	background: #333 url('../gfx/Macaca_nigra_self-portrait.jpg')
 	no-repeat center center; 
-	background-size: contain;
+	background-size: cover;
 }
 table td {
 	background: inherit;
