@@ -364,7 +364,7 @@
 					var onResize = function(){
 						var $table = $(puzzEl).find('table');
 						var w = $table.width();
-						$table.height(w);
+						$table.height(w*rows/cols);
 						$table.css('font-size',w/400+'em');
 
 						var cellHeight = Math.ceil($table.find('input').width());

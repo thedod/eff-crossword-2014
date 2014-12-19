@@ -227,7 +227,7 @@
                 console.log(JSON.stringify(entryData));
 */
                 // Note: you can change showAnswers to true, but #CeilingKeith would know
-		$('#puzzle-wrapper').crossword({ entryData: entryData, showAnswers: false, id: "crossword" });
+                $('#puzzle-wrapper').crossword({ entryData: entryData, showAnswers: false, id: "crossword" });
 	})
 	
 })(jQuery)
